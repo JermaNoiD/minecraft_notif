@@ -3,7 +3,7 @@
 ![Docker Pulls](https://img.shields.io/docker/pulls/jermanoid/minecraft_notif)
 ![GitHub](https://img.shields.io/github/license/jermanoid/minecraft_notif)
 
-![Dockerhub](https://hub.docker.com/r/jermanoid/minecraft_notif)
+[Dockerhub](https://hub.docker.com/r/jermanoid/minecraft_notif)
 
 A lightweight Dockerized application that monitors a Minecraft server log file and sends notifications for player join, leave, and whitelist failure events. Supports **ntfy** and **Discord** notification services with configurable toggles and custom notification titles.
 
@@ -21,7 +21,7 @@ The image is available on Docker Hub as `jermanoid/minecraft_notif:1.0` and `jer
 ## Prerequisites
 - Docker and Docker Compose installed
 - A Minecraft server with accessible log files (e.g., `/logs/latest.log`)
-- For NTFY: An ntfy topic and an ![access token](https://docs.ntfy.sh/config/#access-tokens)
+- For NTFY: An ntfy topic and an [access token](https://docs.ntfy.sh/config/#access-tokens)
 - For Discord: A Discord webhook URL
 
 ## Quick Start
