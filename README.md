@@ -1,7 +1,9 @@
-# Minecraft Server Notification System
+# Minecraft Server Player Join/Leave Notification System
 
 ![Docker Pulls](https://img.shields.io/docker/pulls/jermanoid/minecraft_notif)
 ![GitHub](https://img.shields.io/github/license/jermanoid/minecraft_notif)
+
+![Dockerhub](https://hub.docker.com/r/jermanoid/minecraft_notif)
 
 A lightweight Dockerized application that monitors a Minecraft server log file and sends notifications for player join, leave, and whitelist failure events. Supports **ntfy** and **Discord** notification services with configurable toggles and custom notification titles.
 
