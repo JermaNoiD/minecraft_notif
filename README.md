@@ -57,6 +57,7 @@ The image is available on Docker Hub as `jermanoid/minecraft_notif:1.0` and `jer
    NOTIFY_WHITELIST=true
    ```
 5. **Modify the docker-compose.yaml file and update your volume directory**
+   
    locate your minecraft logs directory. When you list the files in the directory you should see "lastest.log" This is the directory to use
    ```bash
    nano docker-compose.yml
