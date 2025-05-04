@@ -89,4 +89,4 @@ The image is available on Docker Hub as `jermanoid/minecraft_notif:1.0` and `jer
    ```
 
 8. **Test logging in**
-   Try logging into your minecraft server and if your volume directory and environment variables are set properly you should receive a notification.
+   Try logging into your Minecraft server and if your volume directory and environment variables are set properly you should receive a notification.
