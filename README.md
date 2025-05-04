@@ -35,7 +35,7 @@ The image is available on Docker Hub as `jermanoid/minecraft_notif:1.0` and `jer
    ```bash
    cp .env.example .env
    ```
-3. **Modify the .env file for your needs***
+3. **Modify the .env file for your needs**
    ```bash
    nano .env```
    ```
