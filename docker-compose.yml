@@ -1,0 +1,20 @@
+services:
+
+  minecraft_notif:
+    container_name: minecraft_notif
+    environment:
+      - LOG_FILE=/logs/latest.log
+      - NOTIFY_SERVICE=${NOTIFY_SERVICE:-ntfy}
+      - NTFY_TOPIC=${NTFY_TOPIC}
+      - NTFY_URL=${NTFY_URL:-https://ntfy.sh}
+      - NTFY_TOKEN=${NTFY_TOKEN}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - NOTIFY_SUBJECT=${NOTIFY_SUBJECT:-Minecraft Server}
+      - NOTIFY_JOIN=${NOTIFY_JOIN:-true}
+      - NOTIFY_LEAVE=${NOTIFY_LEAVE:-true}
+      - NOTIFY_WHITELIST=${NOTIFY_WHITELIST:-true}
+    image: jermanoid/minecraft_notif:latest
+    restart: always
+    volumes:
+        #update this path preceeding the colon to the path of your logs directory that contains "latest.log"
+        - /path/to/logs/directory:/logs:ro
