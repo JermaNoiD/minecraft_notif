@@ -7,7 +7,7 @@
 
 A lightweight Dockerized application that monitors a Minecraft server log file and sends notifications for player join, leave, and whitelist failure events. Supports **ntfy** and **Discord** notification services with configurable toggles and custom notification titles.
 
-The image is available on Docker Hub as `jermanoid/minecraft_notif:1.0` and `jermanoid/minecraft_notif:latest`.
+The image is available on Docker Hub as `jermanoid/minecraft_notif:latest`
 
 ## Features
 - Monitors Minecraft server logs for player events (join, leave, whitelist failures)
