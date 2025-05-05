@@ -37,7 +37,7 @@ The image is available on Docker Hub as `jermanoid/minecraft_notif:latest`
    ```
 3. **Modify the .env file for your needs**
    ```bash
-   nano .env```
+   nano .env
    ```
    ```
    # Notification service (ntfy or discord)
