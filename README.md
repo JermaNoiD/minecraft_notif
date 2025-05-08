@@ -21,7 +21,7 @@ The image is available on Docker Hub as `jermanoid/minecraft_notif:latest`
 ## Prerequisites
 - Docker and Docker Compose installed
 - A Minecraft server with accessible log files (e.g., `/logs/latest.log`)
-- For NTFY: An ntfy topic and an [access token](https://docs.ntfy.sh/config/#access-tokens)
+- For NTFY: A NTFY topic and an [access token](https://docs.ntfy.sh/config/#access-tokens)
 - For Discord: A Discord webhook URL
 
 ## Quick Start
@@ -81,8 +81,8 @@ The image is available on Docker Hub as `jermanoid/minecraft_notif:latest`
     image: minecraft_notif:latest
     restart: always
     volumes:
-        #update this path preceeding the colon to the path of your logs directory that contains "latest.log"
-        - /path/to/logs/directory:/logs:ro
+        #update this path preceding the colon to the path of your Minecraft logs directory that contains "latest.log"
+        - /path/to/Minecraft/logs/directory:/logs:ro
    ```
 7. **Run the compose**
    ```bash
