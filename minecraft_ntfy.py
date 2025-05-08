@@ -3,6 +3,7 @@ import time
 import requests
 import os
 import logging
+import stat
 from pathlib import Path
 from typing import Optional
 
@@ -32,7 +33,6 @@ WHITELIST_PATTERN = re.compile(r"\[Server thread/INFO\]: (\w+) was kicked due to
 
 def validate_config() -> bool:
     """Validate required environment variables based on notification service."""
-    # Common required variables
     if not LOG_FILE:
         logger.error("Missing required environment variable: LOG_FILE")
         return False
@@ -45,7 +45,6 @@ def validate_config() -> bool:
         logger.error("NOTIFY_SUBJECT cannot be empty")
         return False
 
-    # Service-specific validation
     if NOTIFY_SERVICE == 'ntfy':
         if not NTFY_TOPIC:
             logger.error("Missing required environment variable: NTFY_TOPIC")
@@ -114,45 +113,123 @@ def send_notification(message: str, title: str = NOTIFY_SUBJECT) -> None:
     elif NOTIFY_SERVICE == 'discord':
         send_discord_notification(message, title)
 
-def follow_log(file_path: str) -> None:
-    """Follow the log file, similar to tail -f."""
-    file = Path(file_path)
-    if not file.exists():
-        logger.error(f"Log file {file_path} not found")
-        return
+def get_file_info(file_path: str) -> Optional[dict]:
+    """Get inode and modification time of a file, or None if it doesn't exist."""
+    try:
+        stat_info = os.stat(file_path)
+        return {
+            "inode": stat_info.st_ino,
+            "mtime": stat_info.st_mtime
+        }
+    except (FileNotFoundError, PermissionError):
+        return None
 
-    logger.info(f"Starting to monitor {file_path}")
-    with open(file, "r", encoding='utf-8') as f:
-        f.seek(0, 2)  # Seek to end
-        while True:
-            line = f.readline()
-            if not line:
-                time.sleep(0.1)
-                continue
-                
-            # Check for join event
-            if NOTIFY_JOIN:
-                join_match = JOIN_PATTERN.search(line)
-                if join_match:
-                    player = join_match.group(1)
-                    send_notification(f"{player} joined the server")
+def get_latest_log_file(log_dir: Path) -> Optional[Path]:
+    """Find the most recently modified log file in the directory."""
+    try:
+        log_files = [f for f in log_dir.iterdir() if f.is_file() and f.name.startswith('latest.log')]
+        if not log_files:
+            return None
+        return max(log_files, key=lambda f: os.stat(f).st_mtime)
+    except (OSError, PermissionError) as e:
+        logger.error(f"Error scanning log directory {log_dir}: {e}")
+        return None
+
+def follow_log(file_path: str) -> None:
+    """Follow the log file, handling rotations by scanning the log directory."""
+    file = Path(file_path)
+    log_dir = file.parent
+    current_inode = None
+    current_mtime = None
+    file_handle = None
+    last_check = 0
+    check_interval = 5  # Check for file changes every 5 seconds
+
+    logger.info(f"Starting to monitor {file_path} in directory {log_dir}")
+
+    while True:
+        try:
+            # Periodically check for log file changes
+            current_time = time.time()
+            if current_time - last_check >= check_interval:
+                # Find the latest log file
+                latest_log = get_latest_log_file(log_dir)
+                file_exists = file.exists()
+
+                # If no log file exists, wait and retry
+                if not file_exists or not latest_log:
+                    if file_handle:
+                        file_handle.close()
+                        file_handle = None
+                        logger.warning(f"Log file {file_path} not found, waiting for it to appear")
+                    time.sleep(1)
                     continue
-                
-            # Check for leave event
-            if NOTIFY_LEAVE:
-                leave_match = LEAVE_PATTERN.search(line)
-                if leave_match:
-                    player = leave_match.group(1)
-                    send_notification(f"{player} left the server")
+
+                # Get current file info
+                file_info = get_file_info(file_path)
+                if file_info:
+                    new_inode = file_info["inode"]
+                    new_mtime = file_info["mtime"]
+                else:
+                    new_inode = None
+                    new_mtime = None
+
+                # Check if the file has changed (inode or mtime indicates rotation)
+                if (new_inode != current_inode or new_mtime != current_mtime or file_handle is None) and file_info:
+                    if file_handle:
+                        file_handle.close()
+                        logger.info(
+                            f"Log file changed (inode: {current_inode} -> {new_inode}, "
+                            f"mtime: {current_mtime} -> {new_mtime}), reopening {file_path}"
+                        )
+                    file_handle = open(file, "r", encoding='utf-8')
+                    file_handle.seek(0, 2)  # Seek to end
+                    current_inode = new_inode
+                    current_mtime = new_mtime
+                    logger.info(f"Monitoring log file {file_path} (inode: {current_inode}, mtime: {current_mtime})")
+
+                last_check = current_time
+
+            # Read new lines
+            if file_handle:
+                line = file_handle.readline()
+                if not line:
+                    time.sleep(0.1)  # Avoid CPU overuse
                     continue
+
+                # Check for join event
+                if NOTIFY_JOIN:
+                    join_match = JOIN_PATTERN.search(line)
+                    if join_match:
+                        player = join_match.group(1)
+                        send_notification(f"{player} joined the server")
+                        continue
                 
-            # Check for whitelist failure
-            if NOTIFY_WHITELIST:
-                whitelist_match = WHITELIST_PATTERN.search(line)
-                if whitelist_match:
-                    player = whitelist_match.group(1)
-                    send_notification(f"{player} failed to join (not whitelisted)")
-                    continue
+                # Check for leave event
+                if NOTIFY_LEAVE:
+                    leave_match = LEAVE_PATTERN.search(line)
+                    if leave_match:
+                        player = leave_match.group(1)
+                        send_notification(f"{player} left the server")
+                        continue
+                
+                # Check for whitelist failure
+                if NOTIFY_WHITELIST:
+                    whitelist_match = WHITELIST_PATTERN.search(line)
+                    if whitelist_match:
+                        player = whitelist_match.group(1)
+                        send_notification(f"{player} failed to join (not whitelisted)")
+                        continue
+
+        except (IOError, PermissionError) as e:
+            logger.error(f"Error reading log file: {e}")
+            if file_handle:
+                file_handle.close()
+                file_handle = None
+            time.sleep(1)  # Wait before retrying
+        except Exception as e:
+            logger.error(f"Unexpected error in follow_log: {e}")
+            time.sleep(1)
 
 def main() -> None:
     """Main function to start monitoring."""
