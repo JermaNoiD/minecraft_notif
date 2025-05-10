@@ -28,13 +28,16 @@ NOTIFY_LEAVE = os.getenv('NOTIFY_LEAVE', 'true').lower() == 'true'
 NOTIFY_WHITELIST = os.getenv('NOTIFY_WHITELIST', 'true').lower() == 'true'
 
 # Regex patterns for events
-# Standard Minecraft join pattern
+# Standard Minecraft patterns
 SERVER_JOIN_PATTERN = re.compile(r"\[Server thread/INFO\]: (\w+) joined the game")
-# Velocity join pattern
+SERVER_LEAVE_PATTERN = re.compile(r"\[Server thread/INFO\]: (\w+) left the game")
+SERVER_WHITELIST_PATTERN = re.compile(r"\[Server thread/INFO\]: (\w+) was kicked due to: You are not white-listed on this server!")
+# Velocity patterns
 VELOCITY_JOIN_PATTERN = re.compile(r"\[server connection\] (\w+) -> (\w+) has connected")
-# Leave and whitelist patterns (assumed standard, adjust if Velocity differs)
-LEAVE_PATTERN = re.compile(r"\[Server thread/INFO\]: (\w+) left the game")
-WHITELIST_PATTERN = re.compile(r"\[Server thread/INFO\]: (\w+) was kicked due to: You are not white-listed on this server!")
+VELOCITY_LEAVE_PATTERN = re.compile(r"\[server connection\] (\w+) -> (\w+) has disconnected")
+VELOCITY_WHITELIST_PATTERN = re.compile(
+    r"\[connected player\] (\w+) \(/[\d.:]+\): disconnected while connecting to (\w+): You are not whitelisted on this server!"
+)
 
 def validate_config() -> bool:
     """Validate required environment variables based on notification service and log format."""
@@ -154,8 +157,10 @@ def follow_log(file_path: str) -> None:
     last_check = 0
     check_interval = 5  # Check for file changes every 5 seconds
 
-    # Select join pattern based on LOG_FORMAT
+    # Select patterns based on LOG_FORMAT
     join_pattern = VELOCITY_JOIN_PATTERN if LOG_FORMAT == 'velocity' else SERVER_JOIN_PATTERN
+    leave_pattern = VELOCITY_LEAVE_PATTERN if LOG_FORMAT == 'velocity' else SERVER_LEAVE_PATTERN
+    whitelist_pattern = VELOCITY_WHITELIST_PATTERN if LOG_FORMAT == 'velocity' else SERVER_WHITELIST_PATTERN
 
     logger.info(f"Starting to monitor {file_path} in directory {log_dir} with log format: {LOG_FORMAT}")
 
@@ -224,18 +229,28 @@ def follow_log(file_path: str) -> None:
                 
                 # Check for leave event
                 if NOTIFY_LEAVE:
-                    leave_match = LEAVE_PATTERN.search(line)
+                    leave_match = leave_pattern.search(line)
                     if leave_match:
                         player = leave_match.group(1)
-                        send_notification(f"{player} left the server")
+                        if LOG_FORMAT == 'velocity':
+                            server = leave_match.group(2)
+                            message = f"{player} left {server}"
+                        else:
+                            message = f"{player} left the server"
+                        send_notification(message)
                         continue
                 
                 # Check for whitelist failure
                 if NOTIFY_WHITELIST:
-                    whitelist_match = WHITELIST_PATTERN.search(line)
+                    whitelist_match = whitelist_pattern.search(line)
                     if whitelist_match:
                         player = whitelist_match.group(1)
-                        send_notification(f"{player} failed to join (not whitelisted)")
+                        if LOG_FORMAT == 'velocity':
+                            server = whitelist_match.group(2)
+                            message = f"{player} failed to join {server} (not whitelisted)"
+                        else:
+                            message = f"{player} failed to join (not whitelisted)"
+                        send_notification(message)
                         continue
 
         except (IOError, PermissionError) as e:
