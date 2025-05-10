@@ -5,6 +5,7 @@ services:
     environment:
       - LOG_FILE=/logs/latest.log
       - NOTIFY_SERVICE=${NOTIFY_SERVICE:-ntfy}
+      - LOG_FORMAT=${LOG_FORMAT:-server}
       - NTFY_TOPIC=${NTFY_TOPIC}
       - NTFY_URL=${NTFY_URL:-https://ntfy.sh}
       - NTFY_TOKEN=${NTFY_TOKEN}

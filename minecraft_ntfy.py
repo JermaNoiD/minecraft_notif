@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 # Environment variables
 LOG_FILE = os.getenv('LOG_FILE', '/logs/latest.log')
 NOTIFY_SERVICE = os.getenv('NOTIFY_SERVICE', 'ntfy').lower()  # 'ntfy' or 'discord'
+LOG_FORMAT = os.getenv('LOG_FORMAT', 'server').lower()  # 'server' or 'velocity'
 NTFY_TOPIC = os.getenv('NTFY_TOPIC')
 NTFY_URL = os.getenv('NTFY_URL', 'https://ntfy.sh')
 NTFY_TOKEN = os.getenv('NTFY_TOKEN')
@@ -26,13 +27,17 @@ NOTIFY_JOIN = os.getenv('NOTIFY_JOIN', 'true').lower() == 'true'
 NOTIFY_LEAVE = os.getenv('NOTIFY_LEAVE', 'true').lower() == 'true'
 NOTIFY_WHITELIST = os.getenv('NOTIFY_WHITELIST', 'true').lower() == 'true'
 
-# Regex patterns for join/leave/whitelist events
-JOIN_PATTERN = re.compile(r"\[Server thread/INFO\]: (\w+) joined the game")
+# Regex patterns for events
+# Standard Minecraft join pattern
+SERVER_JOIN_PATTERN = re.compile(r"\[Server thread/INFO\]: (\w+) joined the game")
+# Velocity join pattern
+VELOCITY_JOIN_PATTERN = re.compile(r"\[server connection\] (\w+) -> (\w+) has connected")
+# Leave and whitelist patterns (assumed standard, adjust if Velocity differs)
 LEAVE_PATTERN = re.compile(r"\[Server thread/INFO\]: (\w+) left the game")
 WHITELIST_PATTERN = re.compile(r"\[Server thread/INFO\]: (\w+) was kicked due to: You are not white-listed on this server!")
 
 def validate_config() -> bool:
-    """Validate required environment variables based on notification service."""
+    """Validate required environment variables based on notification service and log format."""
     if not LOG_FILE:
         logger.error("Missing required environment variable: LOG_FILE")
         return False
@@ -43,6 +48,10 @@ def validate_config() -> bool:
 
     if not NOTIFY_SUBJECT:
         logger.error("NOTIFY_SUBJECT cannot be empty")
+        return False
+
+    if LOG_FORMAT not in ('server', 'velocity'):
+        logger.error("Invalid LOG_FORMAT. Must be 'server' or 'velocity'")
         return False
 
     if NOTIFY_SERVICE == 'ntfy':
@@ -145,7 +154,10 @@ def follow_log(file_path: str) -> None:
     last_check = 0
     check_interval = 5  # Check for file changes every 5 seconds
 
-    logger.info(f"Starting to monitor {file_path} in directory {log_dir}")
+    # Select join pattern based on LOG_FORMAT
+    join_pattern = VELOCITY_JOIN_PATTERN if LOG_FORMAT == 'velocity' else SERVER_JOIN_PATTERN
+
+    logger.info(f"Starting to monitor {file_path} in directory {log_dir} with log format: {LOG_FORMAT}")
 
     while True:
         try:
@@ -199,10 +211,15 @@ def follow_log(file_path: str) -> None:
 
                 # Check for join event
                 if NOTIFY_JOIN:
-                    join_match = JOIN_PATTERN.search(line)
+                    join_match = join_pattern.search(line)
                     if join_match:
                         player = join_match.group(1)
-                        send_notification(f"{player} joined the server")
+                        if LOG_FORMAT == 'velocity':
+                            server = join_match.group(2)
+                            message = f"{player} joined {server}"
+                        else:
+                            message = f"{player} joined the server"
+                        send_notification(message)
                         continue
                 
                 # Check for leave event
@@ -239,7 +256,7 @@ def main() -> None:
     
     logger.info(
         f"Starting Minecraft server monitor "
-        f"(Service: {NOTIFY_SERVICE}, Subject: {NOTIFY_SUBJECT}, "
+        f"(Service: {NOTIFY_SERVICE}, Log Format: {LOG_FORMAT}, Subject: {NOTIFY_SUBJECT}, "
         f"Join: {NOTIFY_JOIN}, Leave: {NOTIFY_LEAVE}, Whitelist: {NOTIFY_WHITELIST})"
     )
     try:
