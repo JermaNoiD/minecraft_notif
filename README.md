@@ -12,6 +12,7 @@ The image is available on Docker Hub as `jermanoid/minecraft_notif:latest`
 ## Features
 - Monitors Minecraft server logs for player events (join, leave, whitelist failures)
 - Supports notifications via **ntfy** or **Discord** webhooks
+- Supports standard server log format or the Velocity proxy 
 - Configurable via environment variables
 - Toggles for enabling/disabling specific event notifications
 - Customizable notification subject/title
@@ -42,13 +43,18 @@ The image is available on Docker Hub as `jermanoid/minecraft_notif:latest`
    ```
    # Notification service (ntfy or discord)
    NOTIFY_SERVICE=ntfy
+   # Log Format for selecting the "server" or "velocity" proxy logs
+   LOG_FORMAT=server
+   
    # Required for ntfy
    NTFY_TOPIC=your_ntfy_topic
    # Optional for ntfy
    NTFY_URL=https://ntfy.sh
    NTFY_TOKEN=your_ntfy_token
+   
    # Required for discord
    DISCORD_WEBHOOK_URL=your_discord_webhook_url
+   
    # Notification subject
    NOTIFY_SUBJECT=My Awesome Minecraft Server
    # Notification toggles (true/false)
@@ -69,6 +75,7 @@ The image is available on Docker Hub as `jermanoid/minecraft_notif:latest`
     container_name: minecraft-notif
     environment:
       - LOG_FILE=/logs/latest.log
+      - LOG_FORMAT=${LOG_FORMAT:-server}   
       - NOTIFY_SERVICE=${NOTIFY_SERVICE:-ntfy}
       - NTFY_TOPIC=${NTFY_TOPIC}
       - NTFY_URL=${NTFY_URL:-https://ntfy.sh}
