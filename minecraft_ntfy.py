@@ -33,10 +33,10 @@ SERVER_JOIN_PATTERN = re.compile(r"\[Server thread/INFO\]: (\w+) joined the game
 SERVER_LEAVE_PATTERN = re.compile(r"\[Server thread/INFO\]: (\w+) left the game")
 SERVER_WHITELIST_PATTERN = re.compile(r"\[Server thread/INFO\]: (\w+) was kicked due to: You are not white-listed on this server!")
 # Velocity patterns
-VELOCITY_JOIN_PATTERN = re.compile(r"\[server connection\] (\w+) -> (\w+) has connected")
-VELOCITY_LEAVE_PATTERN = re.compile(r"\[server connection\] (\w+) -> (\w+) has disconnected")
+VELOCITY_JOIN_PATTERN = re.compile(r"\[server connection\] (\.?\w+) -> (\w+) has connected")
+VELOCITY_LEAVE_PATTERN = re.compile(r"\[server connection\] (\.?\w+) -> (\w+) has disconnected")
 VELOCITY_WHITELIST_PATTERN = re.compile(
-    r"\[connected player\] (\w+) \(/[\d.:]+\): disconnected while connecting to (\w+): You are not whitelisted on this server!"
+    r"\[connected player\] (\.?\w+) \(/[\d.:]+\): disconnected while connecting to (\w+): You are not whitelisted on this server!"
 )
 
 def validate_config() -> bool:
